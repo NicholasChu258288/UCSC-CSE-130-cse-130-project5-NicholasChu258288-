@@ -62,7 +62,7 @@ int container_exec(void* arg) {
   //Checking or creating lowerdir
   char lowerdir[PATH_MAX*2];
   strcat(lowerdir, container->cwd);
-  strcat(lowerdir, "/images/$");
+  strcat(lowerdir, "/images/");
   strcat(lowerdir, container->img);
   //printf("Lower: %s\n", lowerdir);
   if (stat(lowerdir,&s) == -1){
@@ -73,7 +73,7 @@ int container_exec(void* arg) {
     }
   }
   //Creating dir to hold the upper, work, and merged
-  char overdir[PATH_MAX];
+  char overdir[PATH_MAX*2];
   strcat(overdir, "/tmp/container/");
   strcat(overdir, container->id);
   //printf("%s\n", overdir);
@@ -82,9 +82,7 @@ int container_exec(void* arg) {
       //return -1;
       err(1, "Failed to create a directory to store container file systems");
     }
-
   }
-
   //Checking or creating upperdir
   char upperdir[PATH_MAX*2];
   strcat(upperdir, "/tmp/container/");
@@ -124,16 +122,26 @@ int container_exec(void* arg) {
       err(1, "Failed to create a directory to store container file systems");
     }
   }
+  // Craete string needed fourth arg for mount then call mount
+  char mountData[PATH_MAX*10];
+  strcat(mountData, "lowerdir=");
+  strcat(mountData, lowerdir);
+  strcat(mountData, ",upperdir=");
+  strcat(mountData, upperdir);
+  strcat(mountData, ",workdir=");
+  strcat(mountData, workdir);
 
-  // Calling mount
+  //printf("Mount data: %s\n", mountData);
 
-
+  mount("overlay", merged, "overlay", MS_RELATIME, mountData);
+  
 
 
   // TODO: Call `change_root` with the `merged` directory
-  // change_root(merged)
+  change_root(merged);
 
   // TODO: use `execvp` to run the given command and return its return value
+  //execvp();
 
   return 0;
 }
@@ -179,3 +187,9 @@ int main(int argc, char** argv) {
   waitpid(pid, NULL, 0);
   return EXIT_SUCCESS;
 }
+
+//Notes for testing:
+//Create a new termial
+//In said terminal use "docker run --rm -it alpine sh" to make a container
+//Then back in main terminal outside of the container run "docker ps" to get id and image
+//use "sudo ./container [ID] [IMAGE] [CMD]"
