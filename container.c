@@ -19,7 +19,12 @@
 
 typedef struct container {
   char id[CONTAINER_ID_MAX];
+  
   // TODO: Add fields
+  char cwd[PATH_MAX];
+  char img[PATH_MAX];
+  char cmd[PATH_MAX*10];
+
 } container_t;
 
 /**
@@ -52,10 +57,84 @@ int container_exec(void* arg) {
   // call `mount("overlay", merged, "overlay", MS_RELATIME,
   //    lowerdir={lowerdir},upperdir={upperdir},workdir={workdir})`
 
+  // First check if the directories exist, if not then use mkdir to create it, arg should be the name of the container
+  struct stat s;
+  //Checking or creating lowerdir
+  char lowerdir[PATH_MAX*2];
+  strcat(lowerdir, container->cwd);
+  strcat(lowerdir, "/images/$");
+  strcat(lowerdir, container->img);
+  //printf("Lower: %s\n", lowerdir);
+  if (stat(lowerdir,&s) == -1){
+    if (mkdir(lowerdir, 0700) < 0 && errno != EEXIST){
+      //return -1;
+      //printf("Here 1?");
+      err(1, "Failed to create a directory to store container file systems");
+    }
+  }
+  //Creating dir to hold the upper, work, and merged
+  char overdir[PATH_MAX];
+  strcat(overdir, "/tmp/container/");
+  strcat(overdir, container->id);
+  //printf("%s\n", overdir);
+  if(stat(overdir, &s) == -1){
+    if (mkdir(overdir, 0700) < 0 && errno != EEXIST){
+      //return -1;
+      err(1, "Failed to create a directory to store container file systems");
+    }
+
+  }
+
+  //Checking or creating upperdir
+  char upperdir[PATH_MAX*2];
+  strcat(upperdir, "/tmp/container/");
+  strcat(upperdir, container->id);
+  strcat(upperdir, "/upper");
+  //printf("Upper: %s\n", upperdir);
+  if (stat(upperdir,&s) == -1){
+    if(mkdir(upperdir, 0700) < 0 && errno != EEXIST){
+      //return -1;
+      //printf("Here 2?\n");
+      err(1, "Failed to create a directory to store container file systems");
+    }
+  }
+  //Checking or creating workdir
+  char workdir[PATH_MAX*2];
+  strcat(workdir, "/tmp/container/");
+  strcat(workdir, container->id);
+  strcat(workdir, "/work");
+  //printf("Work: %s\n", workdir);
+  if (stat(workdir,&s) == -1){
+    if (mkdir(workdir, 0700) < 0 && errno != EEXIST){
+      //return -1; 
+      //printf("Here 3?\n");
+      err(1, "Failed to create a directory to store container file systems");
+    }
+  }
+  //Checking or creating merged
+  char merged[PATH_MAX*2];
+  strcat(merged, "/tmp/container/");
+  strcat(merged, container->id);
+  strcat(merged, "/merged");
+  //printf("Merged: %s\n", merged);
+  if (stat(merged,&s) == -1){
+    if (mkdir(merged, 0700)  < 0 && errno != EEXIST){
+      //return -1;
+      //printf("Here 4?\n");
+      err(1, "Failed to create a directory to store container file systems");
+    }
+  }
+
+  // Calling mount
+
+
+
+
   // TODO: Call `change_root` with the `merged` directory
   // change_root(merged)
 
   // TODO: use `execvp` to run the given command and return its return value
+
   return 0;
 }
 
@@ -84,6 +163,10 @@ int main(int argc, char** argv) {
   strncpy(container.id, argv[1], CONTAINER_ID_MAX);
 
   // TODO: store all necessary information to `container`
+
+  strncpy(container.cwd, cwd, PATH_MAX);
+  strncpy(container.img, argv[2], PATH_MAX);
+  strncpy(container.cmd, argv[3], PATH_MAX);
 
   /* Use `clone` to create a child process */
   char child_stack[CHILD_STACK_SIZE];  // statically allocate stack for child
