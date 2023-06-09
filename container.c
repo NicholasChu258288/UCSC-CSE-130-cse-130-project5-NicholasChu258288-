@@ -23,7 +23,8 @@ typedef struct container {
   // TODO: Add fields
   char cwd[PATH_MAX];
   char img[PATH_MAX];
-  char cmd[PATH_MAX*10];
+  char cmd[PATH_MAX];
+  char **arg;
 
 } container_t;
 
@@ -131,17 +132,21 @@ int container_exec(void* arg) {
   strcat(mountData, ",workdir=");
   strcat(mountData, workdir);
 
-  //printf("Mount data: %s\n", mountData);
-
+  //printf("Merged: %s\n", merged);
+  //printf("Data: %s\n", mountData);
   mount("overlay", merged, "overlay", MS_RELATIME, mountData);
-  
-
 
   // TODO: Call `change_root` with the `merged` directory
   change_root(merged);
 
   // TODO: use `execvp` to run the given command and return its return value
-  //execvp();
+  //printf("Command: %s\n", container->cmd);
+  //printf("Arg: %s\n", container->arg[0]);
+  //printf("Arg: %s\n", container->arg[1]);
+  //printf("Arg: %s\n", container->arg[2]);
+
+
+  execvp(container->cmd, container->arg);
 
   return 0;
 }
@@ -176,6 +181,13 @@ int main(int argc, char** argv) {
   strncpy(container.img, argv[2], PATH_MAX);
   strncpy(container.cmd, argv[3], PATH_MAX);
 
+  container.arg = malloc(sizeof(char *) * argc);
+  int j = 0;
+  for (int i = 3; i < argc; i++){
+    container.arg[j] = argv[i];
+    j++;
+  }
+
   /* Use `clone` to create a child process */
   char child_stack[CHILD_STACK_SIZE];  // statically allocate stack for child
   int clone_flags = SIGCHLD | CLONE_NEWNS | CLONE_NEWPID;
@@ -184,7 +196,10 @@ int main(int argc, char** argv) {
     err(1, "Failed to clone");
   }
 
+  
+
   waitpid(pid, NULL, 0);
+  free(container.arg);
   return EXIT_SUCCESS;
 }
 
@@ -193,3 +208,5 @@ int main(int argc, char** argv) {
 //In said terminal use "docker run --rm -it alpine sh" to make a container
 //Then back in main terminal outside of the container run "docker ps" to get id and image
 //use "sudo ./container [ID] [IMAGE] [CMD]"
+//When mount returns an error saying "container: mount devtmpfs: No such file or directory" use "sudo rm -rf /tmp/container"
+
