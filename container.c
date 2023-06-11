@@ -19,12 +19,12 @@
 
 typedef struct container {
   char id[CONTAINER_ID_MAX];
-  
+
   // TODO: Add fields
   char cwd[PATH_MAX];
   char img[PATH_MAX];
   char cmd[PATH_MAX];
-  char **arg;
+  char** arg;
 
 } container_t;
 
@@ -58,73 +58,74 @@ int container_exec(void* arg) {
   // call `mount("overlay", merged, "overlay", MS_RELATIME,
   //    lowerdir={lowerdir},upperdir={upperdir},workdir={workdir})`
 
-  // First check if the directories exist, if not then use mkdir to create it, arg should be the name of the container
+  // First check if the directories exist, if not then use mkdir to create it,
+  // arg should be the name of the container
   struct stat s;
-  //Checking or creating lowerdir
-  char lowerdir[PATH_MAX*2];
+  // Checking or creating lowerdir
+  char lowerdir[PATH_MAX * 2];
   strcat(lowerdir, container->cwd);
   strcat(lowerdir, "/images/");
   strcat(lowerdir, container->img);
-  //printf("Lower: %s\n", lowerdir);
-  if (stat(lowerdir,&s) == -1){
-    if (mkdir(lowerdir, 0700) < 0 && errno != EEXIST){
-      //return -1;
-      //printf("Here 1?");
+  // printf("Lower: %s\n", lowerdir);
+  if (stat(lowerdir, &s) == -1) {
+    if (mkdir(lowerdir, 0700) < 0 && errno != EEXIST) {
+      // return -1;
+      // printf("Here 1?");
       err(1, "Failed to create a directory to store container file systems");
     }
   }
-  //Creating dir to hold the upper, work, and merged
-  char overdir[PATH_MAX*2];
+  // Creating dir to hold the upper, work, and merged
+  char overdir[PATH_MAX * 2];
   strcat(overdir, "/tmp/container/");
   strcat(overdir, container->id);
-  //printf("%s\n", overdir);
-  if(stat(overdir, &s) == -1){
-    if (mkdir(overdir, 0700) < 0 && errno != EEXIST){
-      //return -1;
+  // printf("%s\n", overdir);
+  if (stat(overdir, &s) == -1) {
+    if (mkdir(overdir, 0700) < 0 && errno != EEXIST) {
+      // return -1;
       err(1, "Failed to create a directory to store container file systems");
     }
   }
-  //Checking or creating upperdir
-  char upperdir[PATH_MAX*2];
+  // Checking or creating upperdir
+  char upperdir[PATH_MAX * 2];
   strcat(upperdir, "/tmp/container/");
   strcat(upperdir, container->id);
   strcat(upperdir, "/upper");
-  //printf("Upper: %s\n", upperdir);
-  if (stat(upperdir,&s) == -1){
-    if(mkdir(upperdir, 0700) < 0 && errno != EEXIST){
-      //return -1;
-      //printf("Here 2?\n");
+  // printf("Upper: %s\n", upperdir);
+  if (stat(upperdir, &s) == -1) {
+    if (mkdir(upperdir, 0700) < 0 && errno != EEXIST) {
+      // return -1;
+      // printf("Here 2?\n");
       err(1, "Failed to create a directory to store container file systems");
     }
   }
-  //Checking or creating workdir
-  char workdir[PATH_MAX*2];
+  // Checking or creating workdir
+  char workdir[PATH_MAX * 2];
   strcat(workdir, "/tmp/container/");
   strcat(workdir, container->id);
   strcat(workdir, "/work");
-  //printf("Work: %s\n", workdir);
-  if (stat(workdir,&s) == -1){
-    if (mkdir(workdir, 0700) < 0 && errno != EEXIST){
-      //return -1; 
-      //printf("Here 3?\n");
+  // printf("Work: %s\n", workdir);
+  if (stat(workdir, &s) == -1) {
+    if (mkdir(workdir, 0700) < 0 && errno != EEXIST) {
+      // return -1;
+      // printf("Here 3?\n");
       err(1, "Failed to create a directory to store container file systems");
     }
   }
-  //Checking or creating merged
-  char merged[PATH_MAX*2];
+  // Checking or creating merged
+  char merged[PATH_MAX * 2];
   strcat(merged, "/tmp/container/");
   strcat(merged, container->id);
   strcat(merged, "/merged");
-  //printf("Merged: %s\n", merged);
-  if (stat(merged,&s) == -1){
-    if (mkdir(merged, 0700)  < 0 && errno != EEXIST){
-      //return -1;
-      //printf("Here 4?\n");
+  // printf("Merged: %s\n", merged);
+  if (stat(merged, &s) == -1) {
+    if (mkdir(merged, 0700) < 0 && errno != EEXIST) {
+      // return -1;
+      // printf("Here 4?\n");
       err(1, "Failed to create a directory to store container file systems");
     }
   }
   // Craete string needed fourth arg for mount then call mount
-  char mountData[PATH_MAX*10];
+  char mountData[PATH_MAX * 10];
   strcat(mountData, "lowerdir=");
   strcat(mountData, lowerdir);
   strcat(mountData, ",upperdir=");
@@ -132,19 +133,18 @@ int container_exec(void* arg) {
   strcat(mountData, ",workdir=");
   strcat(mountData, workdir);
 
-  //printf("Merged: %s\n", merged);
-  //printf("Data: %s\n", mountData);
+  // printf("Merged: %s\n", merged);
+  // printf("Data: %s\n", mountData);
   mount("overlay", merged, "overlay", MS_RELATIME, mountData);
 
   // TODO: Call `change_root` with the `merged` directory
   change_root(merged);
 
   // TODO: use `execvp` to run the given command and return its return value
-  //printf("Command: %s\n", container->cmd);
-  //printf("Arg: %s\n", container->arg[0]);
-  //printf("Arg: %s\n", container->arg[1]);
-  //printf("Arg: %s\n", container->arg[2]);
-
+  // printf("Command: %s\n", container->cmd);
+  // printf("Arg: %s\n", container->arg[0]);
+  // printf("Arg: %s\n", container->arg[1]);
+  // printf("Arg: %s\n", container->arg[2]);
 
   execvp(container->cmd, container->arg);
 
@@ -181,9 +181,9 @@ int main(int argc, char** argv) {
   strncpy(container.img, argv[2], PATH_MAX);
   strncpy(container.cmd, argv[3], PATH_MAX);
 
-  container.arg = malloc(sizeof(char *) * argc);
+  container.arg = malloc(sizeof(char*) * argc);
   int j = 0;
-  for (int i = 3; i < argc; i++){
+  for (int i = 3; i < argc; i++) {
     container.arg[j] = argv[i];
     j++;
   }
@@ -196,17 +196,15 @@ int main(int argc, char** argv) {
     err(1, "Failed to clone");
   }
 
-  
-
   waitpid(pid, NULL, 0);
   free(container.arg);
   return EXIT_SUCCESS;
 }
 
-//Notes for testing:
-//Create a new termial
-//In said terminal use "docker run --rm -it alpine sh" to make a container
-//Then back in main terminal outside of the container run "docker ps" to get id and image
-//use "sudo ./container [ID] [IMAGE] [CMD]"
-//When mount returns an error saying "container: mount devtmpfs: No such file or directory" use "sudo rm -rf /tmp/container"
-
+// Notes for testing:
+// Create a new termial
+// In said terminal use "docker run --rm -it alpine sh" to make a container
+// Then back in main terminal outside of the container run "docker ps" to get id
+// and image use "sudo ./container [ID] [IMAGE] [CMD]" When mount returns an
+// error saying "container: mount devtmpfs: No such file or directory" use "sudo
+// rm -rf /tmp/container"
